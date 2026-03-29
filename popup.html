@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub Repo Manager</title>
+  <link rel="stylesheet" href="dist/tailwind.css" />
+</head>
+<body class="w-[480px] h-[600px] overflow-hidden bg-gh-bg text-gh-text flex flex-col select-none">
+
+  <!-- ══════════════ HEADER ══════════════ -->
+  <header class="flex items-center justify-between px-4 py-2.5 bg-gh-bg2 border-b border-gh-border shrink-0">
+    <div class="flex items-center gap-2.5">
+      <span id="headerLogo" class="text-gh-text"></span>
+      <span class="font-semibold text-sm tracking-tight">GitHub Repo Manager</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <span id="userBadge" class="hidden items-center gap-1.5 text-xs text-gh-muted bg-gh-bg3 border border-gh-border rounded-full px-2.5 py-0.5"></span>
+      <button id="settingsBtn"
+        class="p-1.5 rounded-md text-gh-muted hover:text-gh-text hover:bg-gh-bg4 transition-colors">
+      </button>
+    </div>
+  </header>
+
+  <!-- ══════════════ SETTINGS PANEL ══════════════ -->
+  <div id="settingsPanel" class="hidden border-b border-gh-border bg-gh-bg2 shrink-0 animate-slide-down">
+    <div class="px-4 pt-3 pb-4 space-y-3">
+      <div class="flex items-center gap-2 text-xs font-semibold text-gh-muted uppercase tracking-wide">
+        <span id="settingsKeyIcon"></span>
+        GitHub Personal Access Token
+      </div>
+      <p class="text-xs text-gh-subtle leading-relaxed">
+        Cần quyền <code class="bg-gh-bg3 text-gh-accent px-1 py-0.5 rounded text-[11px]">repo</code>
+        và <code class="bg-gh-bg3 text-gh-accent px-1 py-0.5 rounded text-[11px]">delete_repo</code>.
+        <a href="https://github.com/settings/tokens" target="_blank"
+           class="text-gh-accent hover:underline ml-1 inline-flex items-center gap-0.5">
+          Tạo token <span id="extLinkIcon"></span>
+        </a>
+      </p>
+      <div class="flex gap-2">
+        <div class="relative flex-1">
+          <input id="tokenInput" type="password" placeholder="ghp_xxxxxxxxxxxx"
+            autocomplete="off"
+            class="w-full bg-gh-bg3 text-gh-text border border-gh-border rounded-lg px-3 py-2 text-sm font-mono
+                   focus:outline-none focus:border-gh-accent transition-colors placeholder:text-gh-subtle" />
+          <button id="toggleTokenBtn"
+            class="absolute right-2 top-1/2 -translate-y-1/2 text-gh-muted hover:text-gh-text transition-colors p-0.5">
+          </button>
+        </div>
+        <button id="saveTokenBtn"
+          class="flex items-center gap-1.5 bg-gh-accent text-gh-bg font-semibold text-sm px-4 rounded-lg
+                 hover:bg-gh-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
+          Lưu
+        </button>
+      </div>
+
+      <!-- token status -->
+      <div id="tokenStatus" class="hidden text-xs px-3 py-2 rounded-lg font-medium"></div>
+
+      <!-- clear token -->
+      <button id="clearTokenBtn"
+        class="text-xs text-gh-red hover:text-red-400 transition-colors flex items-center gap-1">
+        <span id="clearTokenIcon"></span>Xóa token đã lưu
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════ GLOBAL PROGRESS BAR ══════════════ -->
+  <div id="globalProgressWrap" class="hidden shrink-0 px-4 py-2 bg-gh-bg2 border-b border-gh-border">
+    <div class="flex items-center justify-between text-xs text-gh-muted mb-1.5">
+      <span id="globalProgressLabel">Đang xử lý...</span>
+      <span id="globalProgressCount" class="font-mono text-gh-accent"></span>
+    </div>
+    <div class="h-1.5 bg-gh-bg4 rounded-full overflow-hidden">
+      <div id="globalProgressFill"
+        class="h-full bg-gh-accent rounded-full progress-fill"
+        style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ MAIN ══════════════ -->
+  <div id="mainView" class="flex flex-col flex-1 min-h-0">
+
+    <!-- toolbar -->
+    <div class="flex items-center gap-2 px-3 pt-3 pb-2 shrink-0">
+      <div class="relative flex-1">
+        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gh-subtle pointer-events-none" id="searchIcon"></span>
+        <input id="searchInput" type="text" placeholder="Tìm tên hoặc mô tả..."
+          class="w-full bg-gh-bg3 text-gh-text border border-gh-border rounded-lg pl-8 pr-3 py-1.5 text-sm
+                 focus:outline-none focus:border-gh-accent transition-colors placeholder:text-gh-subtle" />
+      </div>
+      <button id="refreshBtn"
+        class="flex items-center justify-center w-8 h-8 rounded-lg text-gh-muted hover:text-gh-text
+               hover:bg-gh-bg3 border border-gh-border transition-colors shrink-0">
+      </button>
+    </div>
+
+    <!-- filters -->
+    <div class="flex items-center gap-2 px-3 pb-2 shrink-0 flex-wrap">
+      <select id="visFilter"
+        class="bg-gh-bg3 text-gh-text border border-gh-border rounded-lg px-2.5 py-1 text-xs
+               focus:outline-none focus:border-gh-accent cursor-pointer">
+        <option value="all">Tất cả</option>
+        <option value="public">Public</option>
+        <option value="private">Private</option>
+      </select>
+      <select id="sortFilter"
+        class="bg-gh-bg3 text-gh-text border border-gh-border rounded-lg px-2.5 py-1 text-xs
+               focus:outline-none focus:border-gh-accent cursor-pointer">
+        <option value="updated">Mới cập nhật</option>
+        <option value="name">Tên A→Z</option>
+        <option value="stars">Nhiều sao nhất</option>
+      </select>
+      <span id="statsLabel" class="ml-auto text-[11px] text-gh-subtle tabular-nums"></span>
+    </div>
+
+    <!-- bulk action bar -->
+    <div id="bulkBar"
+      class="hidden items-center gap-2 px-3 py-2 bg-[#1c2128] border-y border-gh-border shrink-0 flex-wrap">
+      <span id="bulkCount" class="text-xs font-semibold text-gh-accent mr-1"></span>
+      <button id="bulkPublicBtn"
+        class="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md bg-gh-bg3 border border-gh-border
+               text-gh-text hover:bg-gh-bg4 transition-colors">
+        <span id="bulkPublicIcon"></span>Đổi Public
+      </button>
+      <button id="bulkPrivateBtn"
+        class="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md bg-gh-bg3 border border-gh-border
+               text-gh-text hover:bg-gh-bg4 transition-colors">
+        <span id="bulkPrivateIcon"></span>Đổi Private
+      </button>
+      <button id="bulkDeleteBtn"
+        class="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md bg-gh-red-bg border border-gh-red-border
+               text-gh-red hover:bg-red-900/40 transition-colors">
+        <span id="bulkDeleteIcon"></span>Xóa tất cả
+      </button>
+      <button id="bulkClearBtn"
+        class="ml-auto flex items-center justify-center w-6 h-6 rounded-md text-gh-subtle
+               hover:text-gh-text hover:bg-gh-bg4 transition-colors">
+        <span id="bulkClearIcon"></span>
+      </button>
+    </div>
+
+    <!-- repo list -->
+    <div id="repoList" class="flex-1 overflow-y-auto px-2.5 py-2 space-y-1.5">
+      <!-- populated by JS -->
+    </div>
+  </div>
+
+  <!-- ══════════════ TOAST ══════════════ -->
+  <div id="toast"
+    class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-50
+           flex items-center gap-2 text-xs px-4 py-2 rounded-full
+           bg-gh-bg3 border border-gh-border2 text-gh-text
+           shadow-2xl shadow-black/60 whitespace-nowrap animate-fade-in">
+    <span id="toastIcon"></span>
+    <span id="toastMsg"></span>
+  </div>
+
+  <!-- ══════════════ CONFIRM MODAL ══════════════ -->
+  <div id="modalOverlay"
+    class="hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm flex items-center justify-center animate-fade-in">
+    <div class="bg-gh-bg2 border border-gh-border2 rounded-2xl w-[320px] shadow-2xl shadow-black/70 overflow-hidden">
+      <!-- modal header stripe -->
+      <div id="modalStripe" class="h-1 w-full"></div>
+      <div class="px-6 py-5">
+        <div class="flex justify-center mb-3">
+          <div id="modalIconWrap"
+            class="w-14 h-14 rounded-full flex items-center justify-center">
+          </div>
+        </div>
+        <div id="modalTitle" class="text-center font-semibold text-base mb-2"></div>
+        <div id="modalBody" class="text-center text-xs text-gh-muted leading-relaxed mb-4"></div>
+
+        <!-- typed confirmation input -->
+        <div id="modalInputWrap" class="hidden mb-4">
+          <div class="text-xs text-gh-subtle text-center mb-2" id="modalInputHint"></div>
+          <div class="relative">
+            <input id="modalInput" type="text" autocomplete="off"
+              class="w-full bg-gh-bg3 text-gh-text border border-gh-border rounded-lg px-3 py-2
+                     text-sm text-center font-mono focus:outline-none focus:border-gh-red
+                     transition-colors placeholder:text-gh-subtle" />
+            <button id="autoFillBtn"
+              title="Tự động điền"
+              class="absolute right-2 top-1/2 -translate-y-1/2
+                     text-[10px] font-semibold px-1.5 py-0.5 rounded
+                     bg-gh-bg4 text-gh-muted border border-gh-border
+                     hover:bg-gh-red-bg hover:text-gh-red hover:border-gh-red-border
+                     transition-colors whitespace-nowrap">
+              Tự điền
+            </button>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <button id="modalCancel"
+            class="flex-1 text-sm py-2 rounded-lg bg-gh-bg3 border border-gh-border
+                   text-gh-muted hover:text-gh-text hover:bg-gh-bg4 transition-colors">
+            Hủy
+          </button>
+          <button id="modalConfirm"
+            class="flex-1 text-sm py-2 rounded-lg font-semibold transition-colors">
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ FOOTER CREDIT ══════════════ -->
+  <footer class="shrink-0 flex items-center justify-center gap-1.5 py-1.5 bg-gh-bg2 border-t border-gh-border">
+    <span class="text-[11px] text-gh-subtle">Developed by</span>
+    <a href="https://github.com/tranthangit" target="_blank"
+       class="flex items-center gap-1 text-[11px] font-medium text-gh-muted hover:text-gh-accent transition-colors">
+      <span id="footerGhIcon"></span>
+      Tony Thang
+    </a>
+  </footer>
+
+  <script src="icons.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

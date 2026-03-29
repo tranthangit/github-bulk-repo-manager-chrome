@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #444c56; }
+
+  input[type="checkbox"] {
+    accent-color: #58a6ff;
+    cursor: pointer;
+  }
+
+  select option {
+    background: #21262d;
+    color: #e6edf3;
+  }
+}
+
+@layer components {
+  /* shimmer skeleton */
+  .skeleton {
+    @apply rounded bg-gh-bg3;
+    background: linear-gradient(90deg, #21262d 25%, #2d333b 50%, #21262d 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* progress bar fill animation */
+  .progress-fill {
+    transition: width 0.3s ease-out;
+  }
+
+  /* repo card loading overlay */
+  .repo-loading::after {
+    content: '';
+    @apply absolute inset-0 rounded-xl;
+    background: rgba(13,17,23,0.6);
+    backdrop-filter: blur(1px);
+  }
+}
