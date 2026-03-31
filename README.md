@@ -21,13 +21,6 @@
 
 ---
 
-## Screenshots
-
-| Repo list | Bulk actions | Settings |
-|:---------:|:------------:|:--------:|
-| _(coming soon)_ | _(coming soon)_ | _(coming soon)_ |
-
----
 
 ## Installation
 
