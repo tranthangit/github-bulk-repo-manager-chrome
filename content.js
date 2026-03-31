@@ -179,7 +179,7 @@
         <img src="${ICON_URL}" alt="" />
         GitHub Repo Manager
       </div>
-      <button id="close-btn" title="Đóng">
+      <button id="close-btn" title="Close">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
              viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -190,6 +190,12 @@
     <iframe id="popup-frame" src="${POPUP_URL}"></iframe>
   `;
   shadow.appendChild(panel);
+
+  /* ── Localize close button ── */
+  chrome.storage.local.get(['ghm_lang'], r => {
+    const closeBtn = panel.querySelector('#close-btn');
+    if (closeBtn) closeBtn.title = r.ghm_lang === 'vi' ? 'Đóng' : 'Close';
+  });
 
   /* ── Pulse on first visit ── */
   chrome.storage.local.get(['ghm_launched'], r => {

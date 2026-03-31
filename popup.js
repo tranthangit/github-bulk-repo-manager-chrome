@@ -14,12 +14,73 @@ let busyRepos = new Set(); // repos currently being processed
 const $  = id => document.getElementById(id);
 const qs = (sel, el = document) => el.querySelector(sel);
 
+// ─── i18n ──────────────────────────────────────
+const SUPPORTED_LANGS = [
+  { code: 'vi', label: 'VI' },
+  { code: 'en', label: 'EN' },
+  // To add a new language, see locales/CONTRIBUTING.md
+];
+
+let currentLang = 'vi';
+
+function t(key, ...args) {
+  const locale = window.LOCALES?.[currentLang] || window.LOCALES?.vi || {};
+  let str = Object.prototype.hasOwnProperty.call(locale, key)
+    ? locale[key]
+    : (window.LOCALES?.vi?.[key] ?? window.LOCALES?.en?.[key] ?? key);
+  args.forEach((arg, i) => {
+    str = str.replaceAll(`{${i}}`, arg);
+  });
+  return str;
+}
+
+function applyLocale() {
+  document.getElementById('htmlRoot').lang = currentLang;
+
+  // Language toggle: show the next language label
+  const nextLang = SUPPORTED_LANGS.find(l => l.code !== currentLang) || SUPPORTED_LANGS[0];
+  $('langToggleBtn').textContent = nextLang.label;
+
+  // Settings panel
+  $('tokenPermDesc').innerHTML = t('tokenPermDescHTML');
+  setIcon($('extLinkIcon'), 'externalLink'); // re-inject icon after innerHTML reset
+  $('saveTokenBtn').textContent = t('save');
+  $('clearTokenText').textContent = t('clearToken');
+  $('autoFillBtn').textContent = t('autoFill');
+  $('autoFillBtn').title = t('autoFillTitle');
+
+  // Search
+  $('searchInput').placeholder = t('searchPlaceholder');
+
+  // Filters
+  qs('option[value="all"]', $('visFilter')).textContent = t('filterAll');
+  const sortOpts = $('sortFilter').options;
+  sortOpts[0].textContent = t('sortUpdated');
+  sortOpts[1].textContent = t('sortName');
+  sortOpts[2].textContent = t('sortStars');
+
+  // Bulk bar
+  $('bulkPublicText').textContent  = t('bulkPublicBtn');
+  $('bulkPrivateText').textContent = t('bulkPrivateBtn');
+  $('bulkDeleteText').textContent  = t('bulkDeleteBtn');
+
+  // Modal static buttons
+  $('modalCancel').textContent = t('cancel');
+}
+
+async function setLanguage(lang) {
+  if (!window.LOCALES?.[lang]) return;
+  currentLang = lang;
+  await storage.set('ghm_lang', lang);
+  applyLocale();
+  renderRepos(); // re-render cards with new locale
+}
+
 // ─── Init icons ────────────────────────────────
 function initIcons() {
   setIcon($('headerLogo'),      'github');
   setIcon($('settingsBtn'),     'settings');
   setIcon($('settingsKeyIcon'), 'key');
-  setIcon($('extLinkIcon'),     'externalLink');
   setIcon($('toggleTokenBtn'),  'eye');
   setIcon($('clearTokenIcon'),  'trash2');
   setIcon($('searchIcon'),      'search');
@@ -65,11 +126,11 @@ async function fetchAllRepos() {
   return repos;
 }
 
-async function validateToken(t) {
+async function validateToken(tok) {
   const res = await fetch(`${API}/user`, {
-    headers: { Authorization: `Bearer ${t}`, Accept: 'application/vnd.github+json' },
+    headers: { Authorization: `Bearer ${tok}`, Accept: 'application/vnd.github+json' },
   });
-  if (!res.ok) throw new Error('Token không hợp lệ');
+  if (!res.ok) throw new Error(t('invalidToken'));
   return res.json();
 }
 
@@ -107,7 +168,8 @@ function showToast(msg, type = 'default') {
 // ─── Modal ───────────────────────────────────────
 function showConfirm({ icon: iconName = 'alertTriangle', title, body,
                        needInput = false, inputPlaceholder = '', inputHint = '',
-                       confirmLabel = 'Xác nhận', dangerous = true }) {
+                       confirmLabel, dangerous = true }) {
+  confirmLabel = confirmLabel ?? t('confirm');
   return new Promise(resolve => {
     const overlay  = $('modalOverlay');
     const stripe   = $('modalStripe');
@@ -136,16 +198,18 @@ function showConfirm({ icon: iconName = 'alertTriangle', title, body,
     titleEl.textContent = title;
     bodyEl.innerHTML    = body;
     confirmBtn.textContent = confirmLabel;
+    cancelBtn.textContent  = t('cancel');
 
     if (needInput) {
       inputWrap.classList.remove('hidden');
       inputEl.value       = '';
       inputEl.placeholder = inputPlaceholder;
       hintEl.innerHTML    = inputHint;
+      autoFillBtn.textContent = t('autoFill');
+      autoFillBtn.title       = t('autoFillTitle');
       autoFillBtn.onclick = () => {
         inputEl.value = inputPlaceholder;
         inputEl.focus();
-        // flash xanh nhẹ để báo đã điền
         inputEl.classList.add('border-gh-accent');
         setTimeout(() => inputEl.classList.remove('border-gh-accent'), 600);
       };
@@ -205,7 +269,7 @@ function esc(s) {
 function repoCardHTML(r) {
   const isSel  = selected.has(r.full_name);
   const isBusy = busyRepos.has(r.full_name);
-  const updated = new Date(r.updated_at).toLocaleDateString('vi-VN',
+  const updated = new Date(r.updated_at).toLocaleDateString(t('dateLocale'),
     { day:'2-digit', month:'2-digit', year:'numeric' });
 
   const visBadge = r.private
@@ -248,13 +312,13 @@ function repoCardHTML(r) {
     : `<button class="del-btn flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg
                bg-gh-bg3 border border-gh-border text-gh-muted hover:bg-gh-red-bg
                hover:border-gh-red-border hover:text-gh-red transition-colors"
-               data-fn="${esc(r.full_name)}" title="Xóa repo">
+               data-fn="${esc(r.full_name)}" title="${esc(t('deleteRepoTitle'))}">
          ${icon('trash2')}</button>`;
 
   const loadingOverlay = isBusy
     ? `<div class="absolute inset-0 rounded-xl bg-gh-bg/60 backdrop-blur-[1px] flex items-center justify-center z-10">
          <div class="flex items-center gap-2 text-xs text-gh-accent bg-gh-bg3 border border-gh-border rounded-full px-3 py-1.5">
-           ${icon('loader2','animate-spin-fast')} Đang xử lý...
+           ${icon('loader2','animate-spin-fast')} ${esc(t('processingLabel'))}
          </div>
        </div>`
     : '';
@@ -326,7 +390,7 @@ function renderRepos() {
     $('repoList').innerHTML = `
       <div class="flex flex-col items-center justify-center py-12 text-gh-subtle">
         <span class="mb-3 text-gh-bg4">${icon('search')}</span>
-        <p class="text-sm">${allRepos.length > 0 ? 'Không tìm thấy repo nào' : 'Nhập token để bắt đầu'}</p>
+        <p class="text-sm">${allRepos.length > 0 ? esc(t('noReposFound')) : esc(t('enterTokenPrompt'))}</p>
       </div>`;
     return;
   }
@@ -402,7 +466,7 @@ function updateBulkBar() {
   if (selected.size > 0) {
     bar.classList.remove('hidden');
     bar.classList.add('flex');
-    $('bulkCount').textContent = `${selected.size} đã chọn`;
+    $('bulkCount').textContent = t('selectedCount', selected.size);
   } else {
     bar.classList.add('hidden');
     bar.classList.remove('flex');
@@ -432,7 +496,7 @@ async function loadRepos() {
     $('repoList').innerHTML = `
       <div class="flex flex-col items-center justify-center py-12 text-gh-subtle">
         <span class="mb-3 opacity-30">${icon('key')}</span>
-        <p class="text-sm">Nhập GitHub Token để bắt đầu</p>
+        <p class="text-sm">${esc(t('enterTokenPrompt'))}</p>
       </div>`;
     return;
   }
@@ -443,7 +507,7 @@ async function loadRepos() {
     selected.clear();
     updateBulkBar();
     renderRepos();
-    showToast(`Đã tải ${allRepos.length} repos`, 'ok');
+    showToast(t('loadedRepos', allRepos.length), 'ok');
   } catch (err) {
     $('repoList').innerHTML = `
       <div class="flex flex-col items-center justify-center py-12 text-gh-red">
@@ -462,9 +526,9 @@ async function changeVisibility(fullName, isCurrentlyPrivate) {
 
   const ok = await showConfirm({
     icon: makePrivate ? 'lock' : 'globe',
-    title: `Đổi thành ${label}`,
-    body: `Repo <strong class="text-gh-text">${esc(fullName)}</strong> sẽ được đổi thành <strong>${label}</strong>.`,
-    confirmLabel: `Đổi thành ${label}`,
+    title: t('changeToTitle', label),
+    body:  t('changeToBody', esc(fullName), label),
+    confirmLabel: t('changeToConfirm', label),
     dangerous: false,
   });
   if (!ok) return;
@@ -484,7 +548,7 @@ async function changeVisibility(fullName, isCurrentlyPrivate) {
     const updated = await res.json();
     const idx = allRepos.findIndex(r => r.full_name === fullName);
     if (idx !== -1) allRepos[idx] = updated;
-    showToast(`${repo} → ${label}`, 'ok');
+    showToast(t('changedRepo', repo, label), 'ok');
   } catch (err) {
     showToast(err.message, 'err');
   } finally {
@@ -500,19 +564,18 @@ async function deleteRepo(fullName) {
 
   const typed = await showConfirm({
     icon: 'shieldAlert',
-    title: 'Xóa repo vĩnh viễn',
-    body: `Hành động này <strong class="text-gh-red">KHÔNG THỂ HOÀN TÁC</strong>.<br/>
-           Tất cả code, issues, PRs sẽ mất.`,
+    title: t('deleteRepoPermanentTitle'),
+    body:  t('deleteRepoBody'),
     needInput: true,
-    inputHint: `Gõ <code class="text-gh-red bg-gh-red-bg px-1 rounded">${esc(repo)}</code> để xác nhận`,
+    inputHint: t('typeToConfirm', esc(repo)),
     inputPlaceholder: repo,
-    confirmLabel: 'Xóa vĩnh viễn',
+    confirmLabel: t('deletePermanent'),
     dangerous: true,
   });
 
   if (typed === false) return;
   if (typed !== repo) {
-    showToast('Tên không khớp — đã hủy', 'err');
+    showToast(t('nameMismatch'), 'err');
     return;
   }
 
@@ -538,7 +601,7 @@ async function deleteRepo(fullName) {
       setTimeout(() => el.remove(), 260);
     }
     $('statsLabel').textContent = `${getFiltered().length} / ${allRepos.length} repos`;
-    showToast(`Đã xóa ${repo}`, 'ok');
+    showToast(t('deletedRepo', repo), 'ok');
   } catch (err) {
     busyRepos.delete(fullName);
     refreshCard(fullName);
@@ -552,9 +615,9 @@ async function bulkChangeVisibility(makePrivate) {
   const fns   = [...selected];
   const ok    = await showConfirm({
     icon: makePrivate ? 'lock' : 'globe',
-    title: `Đổi ${fns.length} repos → ${label}`,
-    body: `<strong class="text-gh-text">${fns.length} repos</strong> sẽ được đổi thành <strong>${label}</strong>.`,
-    confirmLabel: `Đổi ${fns.length} repos`,
+    title: t('bulkChangeTitle', fns.length, label),
+    body:  t('bulkChangeBody', fns.length, label),
+    confirmLabel: t('bulkChangeConfirm', fns.length),
     dangerous: false,
   });
   if (!ok) return;
@@ -567,7 +630,7 @@ async function bulkChangeVisibility(makePrivate) {
 
   for (const fn of fns) {
     const [owner, repo] = fn.split('/');
-    showGlobalProgress(`Đổi thành ${label}...`, done + failed + 1, fns.length);
+    showGlobalProgress(t('bulkChanging', label), done + failed + 1, fns.length);
     try {
       const res = await ghFetch(`/repos/${owner}/${repo}`, {
         method: 'PATCH',
@@ -583,13 +646,14 @@ async function bulkChangeVisibility(makePrivate) {
     }
     busyRepos.delete(fn);
     refreshCard(fn);
-    showGlobalProgress(`Đổi thành ${label}...`, done + failed, fns.length);
+    showGlobalProgress(t('bulkChanging', label), done + failed, fns.length);
   }
 
   hideGlobalProgress();
   selected.clear();
   updateBulkBar();
-  showToast(`${done} thành công${failed ? `, ${failed} lỗi` : ''}`, failed ? 'err' : 'ok');
+  const failedStr = failed ? `, ${failed} ${t('failed')}` : '';
+  showToast(`${done} ${t('succeeded')}${failedStr}`, failed ? 'err' : 'ok');
 }
 
 // ─── Bulk delete ──────────────────────────────────
@@ -597,18 +661,17 @@ async function bulkDelete() {
   const fns   = [...selected];
   const typed = await showConfirm({
     icon: 'shieldAlert',
-    title: `Xóa ${fns.length} repos`,
-    body: `<strong class="text-gh-red">KHÔNG THỂ HOÀN TÁC!</strong><br/>
-           Toàn bộ code, issues, PRs sẽ mất.`,
+    title: t('bulkDeleteTitle', fns.length),
+    body:  t('bulkDeleteBody'),
     needInput: true,
-    inputHint: `Gõ <code class="text-gh-red bg-gh-red-bg px-1 rounded">DELETE ${fns.length}</code> để xác nhận`,
+    inputHint: t('bulkDeleteHint', fns.length),
     inputPlaceholder: `DELETE ${fns.length}`,
-    confirmLabel: `Xóa ${fns.length} repos`,
+    confirmLabel: t('bulkDeleteConfirm', fns.length),
     dangerous: true,
   });
   if (typed === false) return;
   if (typed !== `DELETE ${fns.length}`) {
-    showToast('Xác nhận không đúng — đã hủy', 'err');
+    showToast(t('confirmMismatch'), 'err');
     return;
   }
 
@@ -620,7 +683,7 @@ async function bulkDelete() {
 
   for (const fn of fns) {
     const [owner, repo] = fn.split('/');
-    showGlobalProgress('Đang xóa repos...', done + failed + 1, fns.length);
+    showGlobalProgress(t('deletingRepos'), done + failed + 1, fns.length);
     try {
       const res = await ghFetch(`/repos/${owner}/${repo}`, { method: 'DELETE' });
       if (res.status !== 204) throw new Error();
@@ -641,14 +704,15 @@ async function bulkDelete() {
       busyRepos.delete(fn);
       refreshCard(fn);
     }
-    showGlobalProgress('Đang xóa repos...', done + failed, fns.length);
+    showGlobalProgress(t('deletingRepos'), done + failed, fns.length);
   }
 
   await new Promise(r => setTimeout(r, 300));
   hideGlobalProgress();
   updateBulkBar();
   $('statsLabel').textContent = `${getFiltered().length} / ${allRepos.length} repos`;
-  showToast(`Đã xóa ${done}${failed ? `, ${failed} lỗi` : ''}`, failed ? 'err' : 'ok');
+  const failedStr = failed ? `, ${failed} ${t('failed')}` : '';
+  showToast(`${t('deletedCount', done)}${failedStr}`, failed ? 'err' : 'ok');
 }
 
 // ─── Settings panel ────────────────────────────────
@@ -668,20 +732,20 @@ $('toggleTokenBtn').addEventListener('click', () => {
 });
 
 $('saveTokenBtn').addEventListener('click', async () => {
-  const t = $('tokenInput').value.trim();
-  if (!t) { showToast('Nhập token trước', 'err'); return; }
+  const rawToken = $('tokenInput').value.trim();
+  if (!rawToken) { showToast(t('enterTokenFirst'), 'err'); return; }
 
   const btn = $('saveTokenBtn');
   btn.disabled = true;
-  btn.innerHTML = `${icon('loader2','animate-spin-fast inline-block mr-1')} Xác thực...`;
+  btn.innerHTML = `${icon('loader2','animate-spin-fast inline-block mr-1')} ${t('validating')}`;
 
   const statusEl = $('tokenStatus');
   statusEl.className = 'hidden text-xs px-3 py-2 rounded-lg font-medium';
 
   try {
-    const user = await validateToken(t);
-    token = t;
-    await storage.set('ghToken', t);
+    const user = await validateToken(rawToken);
+    token = rawToken;
+    await storage.set('ghToken', rawToken);
 
     // Show user badge in header
     const badge = $('userBadge');
@@ -689,7 +753,7 @@ $('saveTokenBtn').addEventListener('click', async () => {
     badge.classList.remove('hidden');
     badge.classList.add('flex');
 
-    statusEl.textContent = `Xác thực thành công: @${user.login}`;
+    statusEl.textContent = t('authSuccess', user.login);
     statusEl.className = 'text-xs px-3 py-2 rounded-lg font-medium bg-gh-green-bg text-gh-green border border-gh-green-border';
 
     setTimeout(() => {
@@ -700,10 +764,10 @@ $('saveTokenBtn').addEventListener('click', async () => {
   } catch (err) {
     statusEl.textContent = err.message;
     statusEl.className = 'text-xs px-3 py-2 rounded-lg font-medium bg-gh-red-bg text-gh-red border border-gh-red-border';
-    showToast('Token không hợp lệ', 'err');
+    showToast(t('invalidToken'), 'err');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Lưu';
+    btn.textContent = t('save');
   }
 });
 
@@ -717,7 +781,13 @@ $('clearTokenBtn').addEventListener('click', async () => {
   $('userBadge').classList.remove('flex');
   updateBulkBar();
   renderRepos();
-  showToast('Đã xóa token', 'ok');
+  showToast(t('tokenCleared'), 'ok');
+});
+
+// ─── Language toggle ───────────────────────────────
+$('langToggleBtn').addEventListener('click', () => {
+  const next = SUPPORTED_LANGS.find(l => l.code !== currentLang) || SUPPORTED_LANGS[0];
+  setLanguage(next.code);
 });
 
 // ─── Toolbar events ────────────────────────────────
@@ -739,6 +809,14 @@ $('bulkClearBtn').addEventListener('click', () => {
 // ─── Init ──────────────────────────────────────────
 (async () => {
   initIcons();
+
+  // Load saved language preference
+  const savedLang = await storage.get('ghm_lang');
+  if (savedLang && window.LOCALES?.[savedLang]) {
+    currentLang = savedLang;
+  }
+  applyLocale();
+
   token = await storage.get('ghToken');
 
   if (token) {

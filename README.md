@@ -1,6 +1,6 @@
 # GitHub Repo Manager
 
-> Chrome Extension — Quản lý GitHub repositories trực tiếp từ trình duyệt.
+> A Chrome Extension to manage your GitHub repositories directly from the browser — change visibility, bulk delete, search, filter, and more.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Manifest](https://img.shields.io/badge/manifest-v3-green.svg)
@@ -8,77 +8,94 @@
 
 ---
 
-## Tính năng
+## Features
 
-- **Xem tất cả repos** — Load toàn bộ repositories của tài khoản (phân trang tự động)
-- **Đổi trạng thái** — Chuyển repo giữa Public / Private với progress indicator
-- **Xóa repo** — Xác nhận bằng cách gõ tên repo, animation fade-out khi xóa
-- **Bulk actions** — Chọn nhiều repo cùng lúc, đổi trạng thái hoặc xóa hàng loạt với progress bar
-- **Tìm kiếm & lọc** — Theo tên, mô tả, visibility, sắp xếp theo ngày / tên / stars
-- **Token bảo mật** — Lưu trong `chrome.storage.local`, không gửi đi đâu ngoài GitHub API
-
----
-
-## Cài đặt
-
-### Tải về & Load thủ công
-
-1. Clone hoặc tải ZIP repo này về máy
-2. Mở Chrome → địa chỉ `chrome://extensions/`
-3. Bật **Developer mode** (góc trên bên phải)
-4. Nhấn **Load unpacked** → chọn thư mục `github-repo-manager-chrome`
-
-> **Lưu ý:** Nếu bạn chỉnh sửa code, chạy lại `npm run build` để rebuild CSS trước khi reload.
+- **View all repositories** — loads your entire account's repo list with automatic pagination
+- **Toggle visibility** — switch any repo between Public and Private in one click
+- **Delete repos** — type the repo name to confirm, with a smooth fade-out animation on removal
+- **Bulk actions** — select multiple repos at once, then change visibility or delete them all with a real-time progress bar
+- **Search & filter** — search by name or description, filter by visibility (All / Public / Private), and sort by last updated / name / stars
+- **Floating launcher** — a sleek FAB button on every GitHub page opens the panel without leaving the page
+- **Multilingual UI** — switch between English and Vietnamese; community can add more languages (see [locales/CONTRIBUTING.md](locales/CONTRIBUTING.md))
+- **Secure token storage** — your PAT is stored in `chrome.storage.local` and never sent anywhere except the GitHub API
 
 ---
 
-## Thiết lập Token
+## Screenshots
 
-1. Truy cập [github.com/settings/tokens](https://github.com/settings/tokens)
-2. Nhấn **Generate new token (classic)**
-3. Đặt tên, chọn expiration phù hợp
-4. Tick các quyền sau:
-
-   | Quyền | Lý do |
-   |---|---|
-   | `repo` | Đọc danh sách và cập nhật visibility repo |
-   | `delete_repo` | Xóa repo |
-
-5. Copy token → dán vào ô token trong extension → nhấn **Lưu**
+| Repo list | Bulk actions | Settings |
+|:---------:|:------------:|:--------:|
+| _(coming soon)_ | _(coming soon)_ | _(coming soon)_ |
 
 ---
 
-## Build từ source
+## Installation
+
+### Load unpacked (Developer mode)
+
+1. Clone or download this repository as a ZIP and extract it.
+2. Open Chrome and navigate to `chrome://extensions/`
+3. Enable **Developer mode** (toggle in the top-right corner).
+4. Click **Load unpacked** and select the `github-repo-manager-chrome` folder.
+
+> **Note:** If you modify any source files, run `npm run build` to rebuild the CSS before reloading the extension.
+
+---
+
+## Token Setup
+
+The extension requires a GitHub **Personal Access Token (classic)** with the following scopes:
+
+| Scope | Why |
+|---|---|
+| `repo` | Read repo list and update visibility |
+| `delete_repo` | Delete repositories |
+
+**Steps:**
+
+1. Go to [github.com/settings/tokens](https://github.com/settings/tokens)
+2. Click **Generate new token (classic)**
+3. Give it a name and set an appropriate expiration date
+4. Check `repo` and `delete_repo`
+5. Copy the token → paste it into the extension's token field → click **Save**
+
+---
+
+## Build from Source
 
 ```bash
-# Cài dependencies
+# Install dependencies
 npm install
 
-# Build Tailwind CSS (bắt buộc sau khi clone)
+# Build Tailwind CSS (required after cloning)
 npm run build
 
-# Hoặc watch mode (tự rebuild khi sửa file)
+# Or watch mode — auto-rebuilds when source files change
 npm run watch
 ```
 
 ---
 
-## Cấu trúc thư mục
+## Project Structure
 
 ```
 github-repo-manager-chrome/
-├── manifest.json          # Chrome Extension Manifest V3
-├── popup.html             # UI chính
-├── popup.js               # Logic + GitHub API calls
-├── icons.js               # Lucide SVG icons (inline)
-├── background.js          # Service worker
+├── manifest.json           # Chrome Extension Manifest V3
+├── popup.html              # Main extension UI
+├── popup.js                # Core logic + GitHub API calls
+├── icons.js                # Lucide SVG icons (inline, no CDN)
+├── background.js           # Service worker (MV3 requirement)
+├── content.js              # Floating FAB + slide-in panel on GitHub pages
+├── locales/
+│   ├── en.js               # English locale strings
+│   ├── vi.js               # Vietnamese locale strings
+│   └── CONTRIBUTING.md     # Guide for adding new languages
 ├── src/
-│   └── input.css          # Tailwind CSS directives
+│   └── input.css           # Tailwind CSS directives
 ├── dist/
-│   └── tailwind.css       # CSS đã compiled (do npm run build tạo ra)
-├── tailwind.config.js     # Tailwind config với GitHub dark theme colors
+│   └── tailwind.css        # Compiled CSS (generated by npm run build)
+├── tailwind.config.js      # Tailwind config with GitHub dark theme colors
 ├── icons/
-│   ├── icon.png           # Icon gốc
 │   ├── icon16.png
 │   ├── icon32.png
 │   ├── icon48.png
@@ -89,24 +106,44 @@ github-repo-manager-chrome/
 
 ---
 
-## Stack
+## Tech Stack
 
-| Thành phần | Chi tiết |
+| Component | Details |
 |---|---|
-| **UI framework** | [Tailwind CSS v3](https://tailwindcss.com) |
-| **Icons** | [Lucide](https://lucide.dev) (inline SVG, không cần CDN) |
+| **UI** | [Tailwind CSS v3](https://tailwindcss.com) — GitHub dark theme |
+| **Icons** | [Lucide](https://lucide.dev) — inline SVG, zero dependencies |
 | **API** | [GitHub REST API v3](https://docs.github.com/en/rest) |
 | **Storage** | `chrome.storage.local` |
-| **Manifest** | Chrome Extension Manifest V3 |
+| **Extension** | Chrome Manifest V3 |
 
 ---
 
-## Lưu ý bảo mật
+## Contributing
 
-- Token được lưu trong `chrome.storage.local` — chỉ extension này có thể đọc.
-- Extension **không** gửi token đến bất kỳ server nào ngoài `api.github.com`.
-- Khi xóa extension, token bị xóa theo.
-- Nên đặt expiration cho token và chỉ cấp đúng quyền cần thiết.
+### Adding a new language
+
+Translations live in the [`locales/`](locales/) folder as plain JS files — no build step needed.
+See [locales/CONTRIBUTING.md](locales/CONTRIBUTING.md) for a step-by-step guide.
+
+### Bug reports & feature requests
+
+Open an [issue](https://github.com/tranthangit/github-repo-manager-chrome/issues) — all feedback is welcome.
+
+### Pull requests
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feat/my-feature`
+3. Commit your changes
+4. Open a Pull Request against `master`
+
+---
+
+## Security Notes
+
+- Your token is stored in `chrome.storage.local` — only this extension can read it.
+- The extension **never** sends your token anywhere other than `api.github.com`.
+- Uninstalling the extension automatically removes the stored token.
+- Always set an expiration date on your token and grant only the scopes listed above.
 
 ---
 

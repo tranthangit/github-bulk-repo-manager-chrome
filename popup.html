@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" id="htmlRoot">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -16,6 +16,9 @@
     </div>
     <div class="flex items-center gap-1">
       <span id="userBadge" class="hidden items-center gap-1.5 text-xs text-gh-muted bg-gh-bg3 border border-gh-border rounded-full px-2.5 py-0.5"></span>
+      <button id="langToggleBtn"
+        class="px-2 py-1 rounded-md text-gh-muted hover:text-gh-text hover:bg-gh-bg4 transition-colors text-[11px] font-semibold tracking-wide">
+      </button>
       <button id="settingsBtn"
         class="p-1.5 rounded-md text-gh-muted hover:text-gh-text hover:bg-gh-bg4 transition-colors">
       </button>
@@ -29,13 +32,8 @@
         <span id="settingsKeyIcon"></span>
         GitHub Personal Access Token
       </div>
-      <p class="text-xs text-gh-subtle leading-relaxed">
-        Cần quyền <code class="bg-gh-bg3 text-gh-accent px-1 py-0.5 rounded text-[11px]">repo</code>
-        và <code class="bg-gh-bg3 text-gh-accent px-1 py-0.5 rounded text-[11px]">delete_repo</code>.
-        <a href="https://github.com/settings/tokens" target="_blank"
-           class="text-gh-accent hover:underline ml-1 inline-flex items-center gap-0.5">
-          Tạo token <span id="extLinkIcon"></span>
-        </a>
+      <p id="tokenPermDesc" class="text-xs text-gh-subtle leading-relaxed">
+        <!-- set by applyLocale() -->
       </p>
       <div class="flex gap-2">
         <div class="relative flex-1">
@@ -50,7 +48,7 @@
         <button id="saveTokenBtn"
           class="flex items-center gap-1.5 bg-gh-accent text-gh-bg font-semibold text-sm px-4 rounded-lg
                  hover:bg-gh-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
-          Lưu
+          <!-- set by applyLocale() -->
         </button>
       </div>
 
@@ -60,7 +58,7 @@
       <!-- clear token -->
       <button id="clearTokenBtn"
         class="text-xs text-gh-red hover:text-red-400 transition-colors flex items-center gap-1">
-        <span id="clearTokenIcon"></span>Xóa token đã lưu
+        <span id="clearTokenIcon"></span><span id="clearTokenText"></span>
       </button>
     </div>
   </div>
@@ -68,7 +66,7 @@
   <!-- ══════════════ GLOBAL PROGRESS BAR ══════════════ -->
   <div id="globalProgressWrap" class="hidden shrink-0 px-4 py-2 bg-gh-bg2 border-b border-gh-border">
     <div class="flex items-center justify-between text-xs text-gh-muted mb-1.5">
-      <span id="globalProgressLabel">Đang xử lý...</span>
+      <span id="globalProgressLabel"></span>
       <span id="globalProgressCount" class="font-mono text-gh-accent"></span>
     </div>
     <div class="h-1.5 bg-gh-bg4 rounded-full overflow-hidden">
@@ -85,7 +83,7 @@
     <div class="flex items-center gap-2 px-3 pt-3 pb-2 shrink-0">
       <div class="relative flex-1">
         <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gh-subtle pointer-events-none" id="searchIcon"></span>
-        <input id="searchInput" type="text" placeholder="Tìm tên hoặc mô tả..."
+        <input id="searchInput" type="text"
           class="w-full bg-gh-bg3 text-gh-text border border-gh-border rounded-lg pl-8 pr-3 py-1.5 text-sm
                  focus:outline-none focus:border-gh-accent transition-colors placeholder:text-gh-subtle" />
       </div>
@@ -100,16 +98,16 @@
       <select id="visFilter"
         class="bg-gh-bg3 text-gh-text border border-gh-border rounded-lg px-2.5 py-1 text-xs
                focus:outline-none focus:border-gh-accent cursor-pointer">
-        <option value="all">Tất cả</option>
+        <option value="all"></option>
         <option value="public">Public</option>
         <option value="private">Private</option>
       </select>
       <select id="sortFilter"
         class="bg-gh-bg3 text-gh-text border border-gh-border rounded-lg px-2.5 py-1 text-xs
                focus:outline-none focus:border-gh-accent cursor-pointer">
-        <option value="updated">Mới cập nhật</option>
-        <option value="name">Tên A→Z</option>
-        <option value="stars">Nhiều sao nhất</option>
+        <option value="updated"></option>
+        <option value="name"></option>
+        <option value="stars"></option>
       </select>
       <span id="statsLabel" class="ml-auto text-[11px] text-gh-subtle tabular-nums"></span>
     </div>
@@ -121,17 +119,17 @@
       <button id="bulkPublicBtn"
         class="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md bg-gh-bg3 border border-gh-border
                text-gh-text hover:bg-gh-bg4 transition-colors">
-        <span id="bulkPublicIcon"></span>Đổi Public
+        <span id="bulkPublicIcon"></span><span id="bulkPublicText"></span>
       </button>
       <button id="bulkPrivateBtn"
         class="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md bg-gh-bg3 border border-gh-border
                text-gh-text hover:bg-gh-bg4 transition-colors">
-        <span id="bulkPrivateIcon"></span>Đổi Private
+        <span id="bulkPrivateIcon"></span><span id="bulkPrivateText"></span>
       </button>
       <button id="bulkDeleteBtn"
         class="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md bg-gh-red-bg border border-gh-red-border
                text-gh-red hover:bg-red-900/40 transition-colors">
-        <span id="bulkDeleteIcon"></span>Xóa tất cả
+        <span id="bulkDeleteIcon"></span><span id="bulkDeleteText"></span>
       </button>
       <button id="bulkClearBtn"
         class="ml-auto flex items-center justify-center w-6 h-6 rounded-md text-gh-subtle
@@ -180,13 +178,12 @@
                      text-sm text-center font-mono focus:outline-none focus:border-gh-red
                      transition-colors placeholder:text-gh-subtle" />
             <button id="autoFillBtn"
-              title="Tự động điền"
               class="absolute right-2 top-1/2 -translate-y-1/2
                      text-[10px] font-semibold px-1.5 py-0.5 rounded
                      bg-gh-bg4 text-gh-muted border border-gh-border
                      hover:bg-gh-red-bg hover:text-gh-red hover:border-gh-red-border
                      transition-colors whitespace-nowrap">
-              Tự điền
+              <!-- set by applyLocale() -->
             </button>
           </div>
         </div>
@@ -195,7 +192,7 @@
           <button id="modalCancel"
             class="flex-1 text-sm py-2 rounded-lg bg-gh-bg3 border border-gh-border
                    text-gh-muted hover:text-gh-text hover:bg-gh-bg4 transition-colors">
-            Hủy
+            <!-- set by applyLocale() -->
           </button>
           <button id="modalConfirm"
             class="flex-1 text-sm py-2 rounded-lg font-semibold transition-colors">
@@ -216,6 +213,8 @@
   </footer>
 
   <script src="icons.js"></script>
+  <script src="locales/en.js"></script>
+  <script src="locales/vi.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
