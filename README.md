@@ -6,6 +6,9 @@
 ![Manifest](https://img.shields.io/badge/manifest-v3-green.svg)
 ![Tailwind](https://img.shields.io/badge/tailwindcss-v3-38bdf8.svg)
 
+
+DONATE USDT : TJK79vWDTHwSvmpasVCLnWJvtZnTpT5svM ( TRC20 )
+
 ---
 
 ## Features
@@ -139,6 +142,8 @@ Open an [issue](https://github.com/tranthangit/github-repo-manager-chrome/issues
 - Always set an expiration date on your token and grant only the scopes listed above.
 
 ---
+
+
 
 ## License
 
